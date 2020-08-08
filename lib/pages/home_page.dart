@@ -4,6 +4,10 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:spot_me/models/todo.dart';
 import 'dart:async';
 
+import 'package:spot_me/pages/explore_page.dart';
+import 'package:spot_me/pages/chat_page.dart';
+import 'package:spot_me/pages/profile_page.dart';
+
 class HomePage extends StatefulWidget {
   HomePage({Key key, this.auth, this.userId, this.logoutCallback})
       : super(key: key);
@@ -30,22 +34,7 @@ class _HomePageState extends State<HomePage> {
 
   //bool _isEmailVerified = false;
 
-  @override
-  void initState() {
-    super.initState();
 
-    //_checkEmailVerification();
-
-    _todoList = new List();
-    _todoQuery = _database
-        .reference()
-        .child("todo")
-        .orderByChild("userId")
-        .equalTo(widget.userId);
-    _onTodoAddedSubscription = _todoQuery.onChildAdded.listen(onEntryAdded);
-    _onTodoChangedSubscription =
-        _todoQuery.onChildChanged.listen(onEntryChanged);
-  }
 
 //  void _checkEmailVerification() async {
 //    _isEmailVerified = await widget.auth.isEmailVerified();
@@ -115,21 +104,67 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  onEntryChanged(Event event) {
-    var oldEntry = _todoList.singleWhere((entry) {
-      return entry.key == event.snapshot.key;
-    });
-
-    setState(() {
-      _todoList[_todoList.indexOf(oldEntry)] =
-          Todo.fromSnapshot(event.snapshot);
-    });
+  @override
+  Widget build(BuildContext context) {
+    return new Scaffold(
+      body: DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text('Spot Me'),
+            actions: <Widget>[
+              new FlatButton(
+                  child: new Text('Fermer',
+                      style: new TextStyle(
+                          fontSize: 17.0, color: Colors.white)),
+                  onPressed: signOut)
+            ],
+          ),
+          bottomNavigationBar: menu(),
+          body: TabBarView(
+            children: [
+              new ExplorePage(
+                userId: widget.userId,
+                auth: widget.auth,
+                logoutCallback: widget.logoutCallback,
+              ),
+              new ChatPage(
+                userId: widget.userId,
+                auth: widget.auth,
+                logoutCallback: widget.logoutCallback,
+              ),
+              new ProfilePage(
+                userId: widget.userId,
+                auth: widget.auth,
+                logoutCallback: widget.logoutCallback,
+              )
+            ],
+          ),
+        ),
+      ),
+//        floatingActionButton: FloatingActionButton(
+//          onPressed: () {
+//            showAddTodoDialog(context);
+//          },
+//          tooltip: 'Increment',
+//          child: Icon(Icons.add),
+//        )
+    );
   }
 
-  onEntryAdded(Event event) {
-    setState(() {
-      _todoList.add(Todo.fromSnapshot(event.snapshot));
-    });
+  Widget menu() {
+    print("********************************" + widget.userId);
+    return Container(
+      color: Colors.red,
+      child: TabBar(
+        indicatorColor: Colors.white,
+        tabs: [
+          Tab(icon: Icon(Icons.explore)),
+          Tab(icon: Icon(Icons.chat)),
+          Tab(icon: Icon(Icons.person)),
+        ],
+      ),
+    );
   }
 
   signOut() async {
@@ -140,137 +175,6 @@ class _HomePageState extends State<HomePage> {
       print(e);
     }
   }
-
-  addNewTodo(String todoItem) {
-    if (todoItem.length > 0) {
-      Todo todo = new Todo(todoItem.toString(), widget.userId, false);
-      _database.reference().child("todo").push().set(todo.toJson());
-    }
-  }
-
-  updateTodo(Todo todo) {
-    //Toggle completed
-    todo.completed = !todo.completed;
-    if (todo != null) {
-      _database.reference().child("todo").child(todo.key).set(todo.toJson());
-    }
-  }
-
-  deleteTodo(String todoId, int index) {
-    _database.reference().child("todo").child(todoId).remove().then((_) {
-      print("Delete $todoId successful");
-      setState(() {
-        _todoList.removeAt(index);
-      });
-    });
-  }
-
-  showAddTodoDialog(BuildContext context) async {
-    _textEditingController.clear();
-    await showDialog<String>(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            content: new Row(
-              children: <Widget>[
-                new Expanded(
-                    child: new TextField(
-                  controller: _textEditingController,
-                  autofocus: true,
-                  decoration: new InputDecoration(
-                    labelText: 'Add new todo',
-                  ),
-                ))
-              ],
-            ),
-            actions: <Widget>[
-              new FlatButton(
-                  child: const Text('Cancel'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  }),
-              new FlatButton(
-                  child: const Text('Save'),
-                  onPressed: () {
-                    addNewTodo(_textEditingController.text.toString());
-                    Navigator.pop(context);
-                  })
-            ],
-          );
-        });
-  }
-
-  Widget showTodoList() {
-    if (_todoList.length > 0) {
-      return ListView.builder(
-          shrinkWrap: true,
-          itemCount: _todoList.length,
-          itemBuilder: (BuildContext context, int index) {
-            String todoId = _todoList[index].key;
-            String subject = _todoList[index].subject;
-            bool completed = _todoList[index].completed;
-            String userId = _todoList[index].userId;
-            return Dismissible(
-              key: Key(todoId),
-              background: Container(color: Colors.red),
-              onDismissed: (direction) async {
-                deleteTodo(todoId, index);
-              },
-              child: ListTile(
-                title: Text(
-                  subject,
-                  style: TextStyle(fontSize: 20.0)
-                ),
-                trailing: IconButton(
-                  icon:
-                      (completed)
-                      ? Icon(
-                        Icons.done_outline,
-                        color: Colors.green,
-                        size: 20.0,
-                      )
-                      : Icon(
-                        Icons.done,
-                        color:
-                        Colors.grey,
-                        size: 20.0
-                      ),
-                  onPressed: () {
-                    updateTodo(_todoList[index]);
-                  }
-                ),
-              ),
-            );
-          });
-    } else {
-      return Center(
-          child: Text(
-        "Welcome. Your list is empty",
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 30.0),
-      ));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return new Scaffold(
-        appBar: new AppBar(
-          title: new Text('Flutter login demo'),
-          actions: <Widget>[
-            new FlatButton(
-                child: new Text('Logout',
-                    style: new TextStyle(fontSize: 17.0, color: Colors.white)),
-                onPressed: signOut)
-          ],
-        ),
-        body: showTodoList(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            showAddTodoDialog(context);
-          },
-          tooltip: 'Increment',
-          child: Icon(Icons.add),
-        ));
-  }
 }
+
+//showTodoList()
