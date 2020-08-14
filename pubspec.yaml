@@ -8,6 +8,7 @@ dependencies:
   cupertino_icons: ^0.1.2
   firebase_auth: ^0.14.0+5
   firebase_database: ^3.0.7
+  image_picker: ^0.6.7+4
 
 dev_dependencies:
   flutter_test:
@@ -19,3 +20,4 @@ flutter:
 
   assets:
     - assets/flutter-icon.png
+    - assets/no-image.png
