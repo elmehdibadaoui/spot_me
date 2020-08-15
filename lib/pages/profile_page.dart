@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:spot_me/models/todo.dart';
 import 'package:spot_me/models/user.dart';
 import 'package:spot_me/services/authentication.dart';
 
@@ -25,10 +24,19 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
-  User user;
+
+  User user = null;
+  final _city = TextEditingController();
+  final _gender = TextEditingController();
+  final _height = TextEditingController();
+  final _eye_color = TextEditingController();
+  final _hair_color = TextEditingController();
+
   Query _profileQuery;
 
   bool _status = true;
+
+  bool _isLoading = false;
 
   StreamSubscription<Event> _onProfilAddedSubscription;
   StreamSubscription<Event> _onProfilChangedSubscription;
@@ -55,6 +63,12 @@ class _ProfilePageState extends State<ProfilePage> {
     print("something added");
     setState(() {
       user = User.fromSnapshot(event.snapshot);
+
+      _city.text = user.city;
+      _gender.text = user.gender;
+      _height.text = user.height;
+      _eye_color.text = user.eye_color;
+      _hair_color.text = user.hair_color;
     });
   }
 
@@ -109,42 +123,14 @@ class _ProfilePageState extends State<ProfilePage> {
 //  }
 
   _openGallery(BuildContext context) async {
-    var bytes = null;
-    var picture =
-        await ImagePicker.pickImage(source: ImageSource.gallery).then((_pic) {
-//      print("heeeooo111111111111111188888888888888");
-//        bytes = Io.File(_pic.toString()).readAsBytesSync();
-////
-//      print("heeeooo1111111111111111");
-//        String img64 = base64Encode(bytes);
-//        print(img64.substring(0, 100));
+    await ImagePicker.pickImage(source: ImageSource.gallery).then((_pic) {
+      List<int> imageBytes = _pic.readAsBytesSync();
+      String base64Image = base64Encode(imageBytes);
 
-//          List<int> imageBytes = _pic.readAsBytesSync();
-//          String base64Image = base64Encode(imageBytes);
-//
-//          _database.reference().child("users").child(widget.userId).update({
-//            "photo": base64Image,
-//          });
-
-//            String photo = user.photo == null ? user.photo : base64Decode(user.photo);
-      print(user.photo);
-
-//      List<int> imageBytes = _pic.readAsBytesSync();
-//      String base64Image = base64Encode(imageBytes);
-//
-//      print("heeeooo");
-//      print(base64Image);
+      _database.reference().child("users").child(widget.userId).update({
+        "photo": base64Image,
+      });
     });
-
-    getUserImage() {
-//      String photo = user.photo == null ? user.photo : base64Decode(user.photo);
-//      print(user.photo == null ? user.photo : base64Decode(user.photo));
-    }
-
-//    this.setState(() {
-////      imageFile = picture;
-//    });
-//    Navigator.of(context).pop();
   }
 
   @override
@@ -152,7 +138,33 @@ class _ProfilePageState extends State<ProfilePage> {
     return new Scaffold(
         body: new Container(
       color: Colors.white,
-      child: new ListView(
+      child: _getProfileScolet(),
+    ));
+  }
+
+
+  Widget _getEditIcon() {
+    return new GestureDetector(
+      child: new CircleAvatar(
+        backgroundColor: Colors.red,
+        radius: 14.0,
+        child: new Icon(
+          Icons.edit,
+          color: Colors.white,
+          size: 16.0,
+        ),
+      ),
+      onTap: () {
+        setState(() {
+          _status = false;
+        });
+      },
+    );
+  }
+
+  Widget _getProfileScolet() {
+    if (user != null) {
+      return new ListView(
         children: <Widget>[
           Column(
             children: <Widget>[
@@ -171,20 +183,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             new Container(
                               width: 140.0,
                               height: 140.0,
-                              decoration: (user.photo == null
-                                  ? new BoxDecoration(
+                              decoration: (
+                                  user.photo == ""
+                                      ? new BoxDecoration(
                                       shape: BoxShape.circle,
                                       image: new DecorationImage(
                                         image: new ExactAssetImage(
                                             'assets/no-image.png'),
                                       ))
-                                  : new BoxDecoration(
+                                      : new BoxDecoration(
                                       shape: BoxShape.circle,
                                       image: new DecorationImage(
                                         image: new Image.memory(
-                                                base64.decode(user.photo))
+                                            base64.decode(user.photo))
                                             .image,
-                                      ))),
+                                      ))
+                              ),
                             )
                           ],
                         ),
@@ -195,7 +209,6 @@ class _ProfilePageState extends State<ProfilePage> {
                               children: <Widget>[
                                 GestureDetector(
                                   onTap: () {
-                                    print("heeeeeeooooooooo");
                                     _openGallery(context);
                                   },
                                   child: new CircleAvatar(
@@ -223,6 +236,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: <Widget>[
+                      _showCircularProgress(),
                       Padding(
                           padding: EdgeInsets.only(
                               left: 25.0, right: 25.0, top: 25.0),
@@ -251,279 +265,294 @@ class _ProfilePageState extends State<ProfilePage> {
                               )
                             ],
                           )),
-//                          Padding(
-//                            padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
-//                            child: new DropdownButton(
-//                              icon: new Icon(
-//                                Icons.location_city,
-//                                color: Colors.grey,
-//                              ),
-//                              hint: Text('Please choose a location'), // Not necessary for Option 1
-//                              onChanged: (newValue) {
-//                                setState(() {
-////                                  _selectedLocation = newValue;
-//                                });
-//                              },
-//                              items: ['A', 'B', 'C', 'D'].map((location) {
-//                                return DropdownMenuItem(
-//                                  child: new Text(location),
-//                                  value: location,
-//                                );
-//                              }).toList(),
-//                            ),
-//                          ),
+                      //                          Padding(
+                      //                            padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
+                      //                            child: new DropdownButton(
+                      //                              icon: new Icon(
+                      //                                Icons.location_city,
+                      //                                color: Colors.grey,
+                      //                              ),
+                      //                              hint: Text('Please choose a location'), // Not necessary for Option 1
+                      //                              onChanged: (newValue) {
+                      //                                setState(() {
+                      ////                                  _selectedLocation = newValue;
+                      //                                });
+                      //                              },
+                      //                              items: ['A', 'B', 'C', 'D'].map((location) {
+                      //                                return DropdownMenuItem(
+                      //                                  child: new Text(location),
+                      //                                  value: location,
+                      //                                );
+                      //                              }).toList(),
+                      //                            ),
+                      //                          ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
                         child: new TextFormField(
+                          controller: _city,
                           maxLines: 1,
                           keyboardType: TextInputType.emailAddress,
-                          autofocus: false,
                           decoration: new InputDecoration(
                               hintText: 'city',
                               icon: new Icon(
                                 Icons.location_city,
                                 color: Colors.grey,
-                              )),
+                              )
+                          ),
                           validator: (value) =>
-                              value.isEmpty ? 'Email can\'t be empty' : null,
+                          value.isEmpty
+                              ? 'Can\'t be empty'
+                              : null,
                           enabled: !_status,
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
                         child: new TextFormField(
+                          controller: _gender,
                           maxLines: 1,
                           keyboardType: TextInputType.emailAddress,
-                          autofocus: false,
                           decoration: new InputDecoration(
                               hintText: 'gender',
                               icon: new Icon(
                                 Icons.help_outline,
                                 color: Colors.grey,
-                              )),
+                              )
+                          ),
                           validator: (value) =>
-                              value.isEmpty ? 'Email can\'t be empty' : null,
+                          value.isEmpty
+                              ? 'Can\'t be empty'
+                              : null,
                           enabled: !_status,
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
                         child: new TextFormField(
+                          controller: _height,
                           maxLines: 1,
                           keyboardType: TextInputType.emailAddress,
-                          autofocus: false,
                           decoration: new InputDecoration(
                               hintText: 'height',
                               icon: new Icon(
                                 Icons.present_to_all,
                                 color: Colors.grey,
-                              )),
+                              )
+                          ),
                           validator: (value) =>
-                              value.isEmpty ? 'Email can\'t be empty' : null,
+                          value.isEmpty
+                              ? 'Can\'t be empty'
+                              : null,
                           enabled: !_status,
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
                         child: new TextFormField(
+                          controller: _eye_color,
                           maxLines: 1,
                           keyboardType: TextInputType.emailAddress,
-                          autofocus: false,
                           decoration: new InputDecoration(
                               hintText: 'eye_color',
                               icon: new Icon(
                                 Icons.remove_red_eye,
                                 color: Colors.grey,
-                              )),
+                              )
+                          ),
                           validator: (value) =>
-                              value.isEmpty ? 'Email can\'t be empty' : null,
+                          value.isEmpty
+                              ? 'Can\'t be empty'
+                              : null,
                           enabled: !_status,
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 0.0),
                         child: new TextFormField(
+                          controller: _hair_color,
                           maxLines: 1,
                           keyboardType: TextInputType.emailAddress,
-                          autofocus: false,
                           decoration: new InputDecoration(
                               hintText: 'hair_color',
                               icon: new Icon(
                                 Icons.content_cut,
                                 color: Colors.grey,
-                              )),
+                              )
+                          ),
                           validator: (value) =>
-                              value.isEmpty ? 'Email can\'t be empty' : null,
+                          value.isEmpty
+                              ? 'Can\'t be empty'
+                              : null,
                           enabled: !_status,
                         ),
                       ),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 25.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                children: <Widget>[
-//                                  new Column(
-//                                    mainAxisAlignment: MainAxisAlignment.start,
-//                                    mainAxisSize: MainAxisSize.min,
-//                                    children: <Widget>[
-//                                      new Text(
-//                                        'Name',
-//                                        style: TextStyle(
-//                                            fontSize: 16.0,
-//                                            fontWeight: FontWeight.bold),
-//                                      ),
-//                                    ],
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 2.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                children: <Widget>[
-//                                  new Flexible(
-//                                    child: new TextField(
-//                                      decoration: const InputDecoration(
-//                                        hintText: "Enter Your Name",
-//                                      ),
-//                                      enabled: !_status,
-//                                      autofocus: !_status,
-//
-//                                    ),
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 25.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                children: <Widget>[
-//                                  new Column(
-//                                    mainAxisAlignment: MainAxisAlignment.start,
-//                                    mainAxisSize: MainAxisSize.min,
-//                                    children: <Widget>[
-//                                      new Text(
-//                                        'Email ID',
-//                                        style: TextStyle(
-//                                            fontSize: 16.0,
-//                                            fontWeight: FontWeight.bold),
-//                                      ),
-//                                    ],
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 2.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                children: <Widget>[
-//                                  new Flexible(
-//                                    child: new TextField(
-//                                      decoration: const InputDecoration(
-//                                          hintText: "Enter Email ID"),
-//                                      enabled: !_status,
-//                                    ),
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 25.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                children: <Widget>[
-//                                  new Column(
-//                                    mainAxisAlignment: MainAxisAlignment.start,
-//                                    mainAxisSize: MainAxisSize.min,
-//                                    children: <Widget>[
-//                                      new Text(
-//                                        'Mobile',
-//                                        style: TextStyle(
-//                                            fontSize: 16.0,
-//                                            fontWeight: FontWeight.bold),
-//                                      ),
-//                                    ],
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 2.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                children: <Widget>[
-//                                  new Flexible(
-//                                    child: new TextField(
-//                                      decoration: const InputDecoration(
-//                                          hintText: "Enter Mobile Number"),
-//                                      enabled: !_status,
-//                                    ),
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 25.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                mainAxisAlignment: MainAxisAlignment.start,
-//                                children: <Widget>[
-//                                  Expanded(
-//                                    child: Container(
-//                                      child: new Text(
-//                                        'Pin Code',
-//                                        style: TextStyle(
-//                                            fontSize: 16.0,
-//                                            fontWeight: FontWeight.bold),
-//                                      ),
-//                                    ),
-//                                    flex: 2,
-//                                  ),
-//                                  Expanded(
-//                                    child: Container(
-//                                      child: new Text(
-//                                        'State',
-//                                        style: TextStyle(
-//                                            fontSize: 16.0,
-//                                            fontWeight: FontWeight.bold),
-//                                      ),
-//                                    ),
-//                                    flex: 2,
-//                                  ),
-//                                ],
-//                              )),
-//                          Padding(
-//                              padding: EdgeInsets.only(
-//                                  left: 25.0, right: 25.0, top: 2.0),
-//                              child: new Row(
-//                                mainAxisSize: MainAxisSize.max,
-//                                mainAxisAlignment: MainAxisAlignment.start,
-//                                children: <Widget>[
-//                                  Flexible(
-//                                    child: Padding(
-//                                      padding: EdgeInsets.only(right: 10.0),
-//                                      child: new TextField(
-//                                        decoration: const InputDecoration(
-//                                            hintText: "Enter Pin Code"),
-//                                        enabled: !_status,
-//                                      ),
-//                                    ),
-//                                    flex: 2,
-//                                  ),
-//                                  Flexible(
-//                                    child: new TextField(
-//                                      decoration: const InputDecoration(
-//                                          hintText: "Enter State"),
-//                                      enabled: !_status,
-//                                    ),
-//                                    flex: 2,
-//                                  ),
-//                                ],
-//                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 25.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                children: <Widget>[
+                      //                                  new Column(
+                      //                                    mainAxisAlignment: MainAxisAlignment.start,
+                      //                                    mainAxisSize: MainAxisSize.min,
+                      //                                    children: <Widget>[
+                      //                                      new Text(
+                      //                                        'Name',
+                      //                                        style: TextStyle(
+                      //                                            fontSize: 16.0,
+                      //                                            fontWeight: FontWeight.bold),
+                      //                                      ),
+                      //                                    ],
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 2.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                children: <Widget>[
+                      //                                  new Flexible(
+                      //                                    child: new TextField(
+                      //                                      decoration: const InputDecoration(
+                      //                                        hintText: "Enter Your Name",
+                      //                                      ),
+                      //                                      enabled: !_status,
+                      //                                      autofocus: !_status,
+                      //
+                      //                                    ),
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 25.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                children: <Widget>[
+                      //                                  new Column(
+                      //                                    mainAxisAlignment: MainAxisAlignment.start,
+                      //                                    mainAxisSize: MainAxisSize.min,
+                      //                                    children: <Widget>[
+                      //                                      new Text(
+                      //                                        'Email ID',
+                      //                                        style: TextStyle(
+                      //                                            fontSize: 16.0,
+                      //                                            fontWeight: FontWeight.bold),
+                      //                                      ),
+                      //                                    ],
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 2.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                children: <Widget>[
+                      //                                  new Flexible(
+                      //                                    child: new TextField(
+                      //                                      decoration: const InputDecoration(
+                      //                                          hintText: "Enter Email ID"),
+                      //                                      enabled: !_status,
+                      //                                    ),
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 25.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                children: <Widget>[
+                      //                                  new Column(
+                      //                                    mainAxisAlignment: MainAxisAlignment.start,
+                      //                                    mainAxisSize: MainAxisSize.min,
+                      //                                    children: <Widget>[
+                      //                                      new Text(
+                      //                                        'Mobile',
+                      //                                        style: TextStyle(
+                      //                                            fontSize: 16.0,
+                      //                                            fontWeight: FontWeight.bold),
+                      //                                      ),
+                      //                                    ],
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 2.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                children: <Widget>[
+                      //                                  new Flexible(
+                      //                                    child: new TextField(
+                      //                                      decoration: const InputDecoration(
+                      //                                          hintText: "Enter Mobile Number"),
+                      //                                      enabled: !_status,
+                      //                                    ),
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 25.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                mainAxisAlignment: MainAxisAlignment.start,
+                      //                                children: <Widget>[
+                      //                                  Expanded(
+                      //                                    child: Container(
+                      //                                      child: new Text(
+                      //                                        'Pin Code',
+                      //                                        style: TextStyle(
+                      //                                            fontSize: 16.0,
+                      //                                            fontWeight: FontWeight.bold),
+                      //                                      ),
+                      //                                    ),
+                      //                                    flex: 2,
+                      //                                  ),
+                      //                                  Expanded(
+                      //                                    child: Container(
+                      //                                      child: new Text(
+                      //                                        'State',
+                      //                                        style: TextStyle(
+                      //                                            fontSize: 16.0,
+                      //                                            fontWeight: FontWeight.bold),
+                      //                                      ),
+                      //                                    ),
+                      //                                    flex: 2,
+                      //                                  ),
+                      //                                ],
+                      //                              )),
+                      //                          Padding(
+                      //                              padding: EdgeInsets.only(
+                      //                                  left: 25.0, right: 25.0, top: 2.0),
+                      //                              child: new Row(
+                      //                                mainAxisSize: MainAxisSize.max,
+                      //                                mainAxisAlignment: MainAxisAlignment.start,
+                      //                                children: <Widget>[
+                      //                                  Flexible(
+                      //                                    child: Padding(
+                      //                                      padding: EdgeInsets.only(right: 10.0),
+                      //                                      child: new TextField(
+                      //                                        decoration: const InputDecoration(
+                      //                                            hintText: "Enter Pin Code"),
+                      //                                        enabled: !_status,
+                      //                                      ),
+                      //                                    ),
+                      //                                    flex: 2,
+                      //                                  ),
+                      //                                  Flexible(
+                      //                                    child: new TextField(
+                      //                                      decoration: const InputDecoration(
+                      //                                          hintText: "Enter State"),
+                      //                                      enabled: !_status,
+                      //                                    ),
+                      //                                    flex: 2,
+                      //                                  ),
+                      //                                ],
+                      //                              )),
                       !_status ? _getActionButtons() : new Container(),
                     ],
                   ),
@@ -532,8 +561,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ],
-      ),
-    ));
+      );
+    }
   }
 
   Widget _getActionButtons() {
@@ -548,27 +577,32 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: EdgeInsets.only(right: 10.0),
               child: Container(
                   child: new RaisedButton(
-                child: new Text("Save"),
-                textColor: Colors.white,
-                color: Colors.green,
-                onPressed: () {
-                  setState(() {
-//                        _database.reference().child("users").child(widget.userId).set({
-//                          "city": "city",
-//                          "gendre": "gendre",
-//                          "height": "height",
-//                          "eye_color": "eye_color",
-//                          "hair_color": "hair_color",
-//                          "userId": widget.userId
-//                        }).then((_) {
-//                          _status = true;
-//                          FocusScope.of(context).requestFocus(new FocusNode());
-//                        });
-                  });
-                },
-                shape: new RoundedRectangleBorder(
-                    borderRadius: new BorderRadius.circular(20.0)),
-              )),
+                    child: new Text("Save"),
+                    textColor: Colors.white,
+                    color: Colors.green,
+                    onPressed: () {
+                      setState(() {
+                        _isLoading = true;
+                      });
+                      _database.reference().child("users")
+                          .child(widget.userId)
+                          .update({
+                        "city": _city.text,
+                        "gender": _gender.text,
+                        "height": _height.text,
+                        "eye_color": _eye_color.text,
+                        "hair_color": _hair_color.text,
+                        "userId": widget.userId
+                      })
+                          .then((_) {
+                        setState(() {
+                          _isLoading = false;
+                        });
+                      });
+                    },
+                    shape: new RoundedRectangleBorder(
+                        borderRadius: new BorderRadius.circular(20.0)),
+                  )),
             ),
             flex: 2,
           ),
@@ -577,18 +611,18 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: EdgeInsets.only(left: 10.0),
               child: Container(
                   child: new RaisedButton(
-                child: new Text("Cancel"),
-                textColor: Colors.white,
-                color: Colors.red,
-                onPressed: () {
-                  setState(() {
-                    _status = true;
-                    FocusScope.of(context).requestFocus(new FocusNode());
-                  });
-                },
-                shape: new RoundedRectangleBorder(
-                    borderRadius: new BorderRadius.circular(20.0)),
-              )),
+                    child: new Text("Cancel"),
+                    textColor: Colors.white,
+                    color: Colors.red,
+                    onPressed: () {
+                      setState(() {
+                        _status = true;
+                        FocusScope.of(context).requestFocus(new FocusNode());
+                      });
+                    },
+                    shape: new RoundedRectangleBorder(
+                        borderRadius: new BorderRadius.circular(20.0)),
+                  )),
             ),
             flex: 2,
           ),
@@ -597,22 +631,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _getEditIcon() {
-    return new GestureDetector(
-      child: new CircleAvatar(
-        backgroundColor: Colors.red,
-        radius: 14.0,
-        child: new Icon(
-          Icons.edit,
-          color: Colors.white,
-          size: 16.0,
-        ),
-      ),
-      onTap: () {
-        setState(() {
-          _status = false;
-        });
-      },
+  Widget _showCircularProgress() {
+    if (_isLoading) {
+      return Center(child: CircularProgressIndicator());
+    }
+    return Container(
+      height: 0.0,
+      width: 0.0,
     );
   }
 }

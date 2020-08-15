@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:spot_me/models/user.dart';
 
 abstract class BaseAuth {
   Future<String> signIn(String email, String password);
@@ -29,6 +31,13 @@ class Auth implements BaseAuth {
     AuthResult result = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email, password: password);
     FirebaseUser user = result.user;
+
+    FirebaseDatabase _database = FirebaseDatabase.instance;
+    var res = await _database
+        .reference()
+        .child("users")
+        .child(user.uid)
+        .update(new User("", "", "", "", "", "", user.uid).toJson());
 
     user.displayName;
 
